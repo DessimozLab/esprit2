@@ -4,3 +4,4 @@ dendropy
 requests
 ruffus
 biopython
+future
