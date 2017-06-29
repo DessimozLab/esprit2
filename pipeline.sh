@@ -14,12 +14,13 @@ to run properly. This might still change in the future.
 
 The following options and parameters can be set.
 
-Parameters (required):
-----------------------
+Parameters:
+-----------
 
 gene_prefix     a prefix of the gene identifiers that indicates possible
                 split genes, i.e. a prefix of the genes in the genome 
-                you want to search for split genes. 
+                you want to search for split genes. This argument is 
+                required.
                 Example: "Traes_1DS" will search for split genes in the 
                      wheat 1DS chomosome (all ids start with this prefix)
 
@@ -27,10 +28,12 @@ gene_family_folder
                 A folder that contains one fasta file per gene family. The
                 files in there should be sequencially nummered and having 
                 a HOG prefix, e.g. HOG00001.fa
+                If it is not provided, it defaults to ./HOGFasta
 
 orthoxml        the file that contains the HOGs for all genomes in the
                 analysis. This file should match the data in the gene 
                 family folder.
+                If not set, it defaults to ./HierarchicalGroups.orthoxml
 
 
 Options:
@@ -95,8 +98,15 @@ done
 shift $((OPTIND-1))
   
 unique_str="$1"
-orthoxml="$2"
-gene_fam_dir="$3"
+gene_fam_dir="${2:-./HOGFasta}"
+orthoxml="${3:-./HierarchicalGroups.orthoxml}"
+
+if [ -z "$unique_str" ] || [ ! -f "$orthoxml" ] || [ ! -d "$gene_fam_dir" ] ; then
+    >&2 usage 
+    >&2 echo "invalid parameters: \"$unique_str\" \"$gene_fam_dir\" \"$orthoxml\""
+    exit 1
+fi
+
 
 source ./load_python
 pip install -r ./requirements.txt
