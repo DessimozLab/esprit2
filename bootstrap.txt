@@ -1,0 +1,6 @@
+#$ -l h_vmem=2G
+#$ -l tmem=2G
+#$ -l h_rt=86400
+#$ -j y
+#$ -S /bin/bash
+#$ -cwd
