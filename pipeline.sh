@@ -111,9 +111,23 @@ fi
 source ./load_python
 pip install -r ./requirements.txt
 if [ "$?" != "0" ] ; then
-    echo "failed to install python dependencies."
+    >&2 echo "failed to install python dependencies."
     exit 1
 fi
+
+# check that mafft, phyml and fasttree are installed and in PATH
+allok="true"
+for prog in mafft phyml FastTree ; do
+    if [ ! $(which ${prog} 2>/dev/null) ] ; then
+        >&2 echo "Could not detect \"$prog\" in PATH. Please make sure \"$prog\" is "
+        >&2 echo "installed and accessible from the PATH."
+        allok="false"
+    fi
+done
+if [ "$allok" != "true" ] ; then
+    exit 1
+fi
+
 
 #go to the working directory, put HierarchicalGroups.orthoxml there
 #get OMA <-> Ensembl mapping
