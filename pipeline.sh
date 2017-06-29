@@ -1,19 +1,115 @@
 #!/bin/bash
 
-unique_str=$1
-min_len=$2
-ovlp_len=$3
-family_size=$4
-n_samples=$5
-col_thr=$6
-lrt_sign=$7
+usage(){
+cat << EOF
+$0 - find split genes using Esprit 2.0
+
+$0 [options] gene_prefix gene_family_folder orthoxml
+
+This program computes split genes in a given genome using the methodoly 
+described in http://doi.org/...
+
+The program currently requires a SGE (Sun Grid Engine) environment 
+to run properly. This might still change in the future.
+
+The following options and parameters can be set.
+
+Parameters (required):
+----------------------
+
+gene_prefix     a prefix of the gene identifiers that indicates possible
+                split genes, i.e. a prefix of the genes in the genome 
+                you want to search for split genes. 
+                Example: "Traes_1DS" will search for split genes in the 
+                     wheat 1DS chomosome (all ids start with this prefix)
+
+gene_family_folder  
+                A folder that contains one fasta file per gene family. The
+                files in there should be sequencially nummered and having 
+                a HOG prefix, e.g. HOG00001.fa
+
+orthoxml        the file that contains the HOGs for all genomes in the
+                analysis. This file should match the data in the gene 
+                family folder.
+
+
+Options:
+--------
+
+-l              minimum length of candidate genes, defaults to 50 if not set.
+                Shorter genes will be excluded.
+
+-o              maximum overlap in the alignment, defaults to 0.1 if not set.
+                This refers to the maximum possible overlap that two fragments
+                might have in the alignment to still be considered a possible 
+                split gene.
+
+-s              min size of the gene family including the fragements, defaults
+                to 5 if not set. This means, a family must have at least 3 
+                reference sequences and 2 fragments.
+                
+-b              number of bootstrap replicates, defaults to 100 if not set.
+
+-c              threshold for collapsing, defaults to 0.65 if not set. This 
+                refers to the number of bootstrap replicates that need to
+                contain a certain split in order to not be collapsed.
+
+-a              significance of the likelihood ratio test, defaults to 0.01.
+
+EOF
+}
+
+min_len="50"
+ovlp_len="0.1"
+family_size="5"
+n_samples="100"
+col_thr=".65"
+lrt_sign="0.01"
+while getopts "hvl:o:s:b:c:a:" opt; do
+    case $opt in
+    h) usage
+       exit 0
+       ;;
+    v) echo "Esprit 2.0"
+       exit 0
+       ;;
+    l) min_len="$OPTARG"
+       if ! [[ $min_len =~ ^[1-9][0-9]*$ ]] ; then
+          echo "-$opt requires positive integer argument"
+          usage
+          exit 1
+       fi
+       ;;
+    o) ovlp_len="$OPTARG"
+       ;;
+    s) family_size="$OPTARG"
+       ;;
+    b) n_samples="$OPTARG"
+       ;;
+    c) col_thr="$OPTARG"
+       ;;
+    a) lrt_sign="$OPTARG"
+       ;;
+    esac
+done
+shift $((OPTIND-1))
+  
+unique_str="$1"
+orthoxml="$2"
+gene_fam_dir="$3"
+
+source ./load_python
+pip install -r ./requirements.txt
+if [ "$?" != "0" ] ; then
+    echo "failed to install python dependencies."
+    exit 1
+fi
 
 #go to the working directory, put HierarchicalGroups.orthoxml there
-
 #get OMA <-> Ensembl mapping
 cat organise_files.txt > mapping.sh
 cat >> mapping.sh << EOF
-grep "protId=" HierarchicalGroups.orthoxml | grep $unique_str | awk -F\" '{ for(i=2; i<=NF; i=i+2){ a = a"\""\$i"\""",\t";} {print a; a="";}}' | awk '{\$2="";print}'|tr -d '"'| tr -d ',' > mapping.txt
+grep "protId=" $orthoxml | grep $unique_str | awk -F\" '{ for(i=2; i<=NF; i=i+2){ a = a"\""\$i"\""",\t";} {print a; a="";}}' | awk '{\$2="";print}'|tr -d '"'| tr -d ',' > mapping.txt
 EOF
 
 qsub -N mapping mapping.sh 
@@ -294,7 +390,7 @@ for i in range(len(lines)):
     target_genes.append(temp[0])
 tmp.close()
 
-XML = os.getcwd() + '/HierarchicalGroups.orthoxml'
+XML = "$orthoxml"
 doc = etree.parse(XML)
 root_XML = doc.getroot()
 
@@ -303,10 +399,10 @@ topLevel_OG = oq.OrthoXMLQuery.getToplevelOrthologGroups(root_XML)
 HOGs = dict()
 candidates_number = dict()
 for OG in topLevel_OG:
-	OG_genes = [ e.get("id") for e in OG.getiterator() if e.tag == "{http://orthoXML.org/2011/}geneRef" ]
-	if len(set(OG_genes).intersection(target_genes)) >= 2:
-		HOGs[OG.get("id")] = OG_genes
-		candidates_number[OG.get("id")] = list(set(OG_genes).intersection(target_genes))
+    OG_genes = [ e.get("id") for e in OG.getiterator() if e.tag == "{http://orthoXML.org/2011/}geneRef" ]
+    if len(set(OG_genes).intersection(target_genes)) >= 2:
+        HOGs[OG.get("id")] = OG_genes
+        candidates_number[OG.get("id")] = list(set(OG_genes).intersection(target_genes))
 
 
 candidates_id = dict()
@@ -326,7 +422,7 @@ lengths = list()
 
 
 for key in candidates_id:
-    hog_loc = os.getcwd() + '/HOGFasta/HOG' + key + '.fa'
+    hog_loc = "$gene_fam_dir" +'/HOG' + key + '.fa'
     #hog gene sequences
     hog_seqs = read_fasta(hog_loc)
     #write fasta 
@@ -455,28 +551,28 @@ import random
 import sys, glob, os
 
 def findName(t, id_f):
-	id_s = t.index(id_f)
-	for i in range(id_s, len(t)):
-		if t[i]==':':
-			return t[id_s:i]
+    id_s = t.index(id_f)
+    for i in range(id_s, len(t)):
+        if t[i]==':':
+            return t[id_s:i]
 
 def splitBr_difid(t, id_old, id1, id2):
-	to_repl = '(' + id1 + ':0,' + id2 + ':0' + ')' + '0.5'
-	return t.replace(id_old, to_repl)
+    to_repl = '(' + id1 + ':0,' + id2 + ':0' + ')' + '0.5'
+    return t.replace(id_old, to_repl)
 
 folder = os.getcwd() + '/' + sys.argv[1]
 files = glob.glob(folder + '*tree.txt')
 for file in files:
-	temp = open(file, 'r')
-	t = temp.readlines()[0].split()[0]
-	id_old = file.split('/')[-1].split('_c.')[0]
-	id1 = id_old.split('_' + '`echo $unique_str`')[0] 
-	id2 = '`echo $unique_str`' + id_old.split('_' + '`echo $unique_str`')[1]
-	t_s = splitBr_difid(t, id_old, id1, id2)
-	output_name = file.split('.txt')[0] + '_s.txt'
-	f = open(output_name, 'w')
-	f.write(t_s)
-	f.close()
+    temp = open(file, 'r')
+    t = temp.readlines()[0].split()[0]
+    id_old = file.split('/')[-1].split('_c.')[0]
+    id1 = id_old.split('_' + '`echo $unique_str`')[0] 
+    id2 = '`echo $unique_str`' + id_old.split('_' + '`echo $unique_str`')[1]
+    t_s = splitBr_difid(t, id_old, id1, id2)
+    output_name = file.split('.txt')[0] + '_s.txt'
+    f = open(output_name, 'w')
+    f.write(t_s)
+    f.close()
 EOF
 
 
@@ -1015,8 +1111,8 @@ loc = sys.argv[1]
 boot_files = glob.glob(os.getcwd() + '/' + loc + '*.boot')
 
 for file in boot_files:
-	msa_phy = loc + file.split('/')[-1] + '.phy' #MSA in phylip format
-	AlignIO.convert(file, "fasta", msa_phy, "phylip-relaxed")
+    msa_phy = loc + file.split('/')[-1] + '.phy' #MSA in phylip format
+    AlignIO.convert(file, "fasta", msa_phy, "phylip-relaxed")
 EOF
 
 qsub -N bs_phy -hold_jid bs boot_phy.sh
@@ -1050,9 +1146,9 @@ from Bio import AlignIO
 import glob, os
 
 def find_key(d, s1, s2):
-	for key in d.keys():
-		if s1 in key[0] and s2 in key[1]:
-			return key
+    for key in d.keys():
+        if s1 in key[0] and s2 in key[1]:
+            return key
 
 def find_key_full(d, s):
         for key in d.keys():
@@ -1060,26 +1156,26 @@ def find_key_full(d, s):
                         return key
 
 def read_msa(loc):
-	msa = dict()
-	tmp = open(loc, 'r')
-	lines = tmp.readlines()
-	key = lines[0].split()[0][1:]
-	value = ''
-	for i in range(1, len(lines)):
-		if lines[i].split()[0][0] == '>':
-			msa[key] = value
-			key = lines[i].split()[0][1:]
-			value = ''
-		else:
-			value += lines[i].split()[0]
-	msa[key] = value
-	return msa
+    msa = dict()
+    tmp = open(loc, 'r')
+    lines = tmp.readlines()
+    key = lines[0].split()[0][1:]
+    value = ''
+    for i in range(1, len(lines)):
+        if lines[i].split()[0][0] == '>':
+            msa[key] = value
+            key = lines[i].split()[0][1:]
+            value = ''
+        else:
+            value += lines[i].split()[0]
+    msa[key] = value
+    return msa
 
 def split_sequence(msa, id_full, id1, id2, n):
-	msa[id1] = msa[id_full][0:n] + '-' * (len(msa[id_full]) - n)
-	msa[id2] = '-' * n + msa[id_full][n:]
-	msa.pop(id_full)
-	return msa
+    msa[id1] = msa[id_full][0:n] + '-' * (len(msa[id_full]) - n)
+    msa[id2] = '-' * n + msa[id_full][n:]
+    msa.pop(id_full)
+    return msa
 
 def write_dictionary(d, out):
     f = open(out, 'w')
@@ -1094,8 +1190,8 @@ cuts = dict()
 cf = open(os.getcwd() + '/' + sys.argv[1], 'r')
 tmp = cf.readlines()
 for i in range(len(tmp)):
-	temp  = tmp[i].split()
-	cuts[temp[1], temp[2]] = int(temp[3])
+    temp  = tmp[i].split()
+    cuts[temp[1], temp[2]] = int(temp[3])
 cf.close()
 
 
@@ -1103,25 +1199,25 @@ boot_dir = os.getcwd() + '/' + sys.argv[2]
 files = glob.glob(boot_dir + "*.boot")
 
 for i in range(len(files)):
-	i1 = files[i].split('/')[-1].split('_c')[0].split('_' + '`echo $unique_str`')[0]
-	i2 = '`echo $unique_str`' + files[i].split('/')[-1].split('_c')[0].split('_'  + '`echo $unique_str`')[1]
-	c = True
-	if find_key(cuts, i1, i2) != None:
-		id1, id2 = find_key(cuts, i1, i2)		
-	elif find_key(cuts, i2, i1) != None:
-		id1, id2 = find_key(cuts, i2, i1)
-	else:
-		c = False
-	if c:	
-		n = cuts[id1, id2]
-		msa = read_msa(files[i])
-		id_full = find_key_full(msa, id1)
-		if len(msa[id_full]) > n:
-			msa_s = split_sequence(msa, id_full, id1, id2, n)
-			out = files[i] + '_s.fa'
-			write_dictionary(msa_s, out)
-			out_phy = files[i] + '_s.phy'
-			AlignIO.convert(out, "fasta", out_phy, "phylip-relaxed")
+    i1 = files[i].split('/')[-1].split('_c')[0].split('_' + '`echo $unique_str`')[0]
+    i2 = '`echo $unique_str`' + files[i].split('/')[-1].split('_c')[0].split('_'  + '`echo $unique_str`')[1]
+    c = True
+    if find_key(cuts, i1, i2) != None:
+        id1, id2 = find_key(cuts, i1, i2)       
+    elif find_key(cuts, i2, i1) != None:
+        id1, id2 = find_key(cuts, i2, i1)
+    else:
+        c = False
+    if c:   
+        n = cuts[id1, id2]
+        msa = read_msa(files[i])
+        id_full = find_key_full(msa, id1)
+        if len(msa[id_full]) > n:
+            msa_s = split_sequence(msa, id_full, id1, id2, n)
+            out = files[i] + '_s.fa'
+            write_dictionary(msa_s, out)
+            out_phy = files[i] + '_s.phy'
+            AlignIO.convert(out, "fasta", out_phy, "phylip-relaxed")
 
 EOF
 
@@ -1168,17 +1264,17 @@ cd bootstrap_phy
 for f in *.phy; do echo \${f/_c.*.phy/};done | sort| uniq > foldernames.txt
 
 for line in \`cat foldernames.txt\`
-do	
-	mkdir \$line
-	find . -name "\$line*.phy" -exec mv {} \$line/ \; &
-	wait
+do  
+    mkdir \$line
+    find . -name "\$line*.phy" -exec mv {} \$line/ \; &
+    wait
 done
 
 for line in \`cat foldernames.txt\`
 do
-    	cat ../bootstrap_trees.txt > \$line.sh
-	echo 'cd ' bootstrap_phy/\$line >> \$line.sh
-	echo 'for f in *.phy; do FastTree \$f > \$f.tree.txt; done' >> \$line.sh
+        cat ../bootstrap_trees.txt > \$line.sh
+    echo 'cd ' bootstrap_phy/\$line >> \$line.sh
+    echo 'for f in *.phy; do FastTree \$f > \$f.tree.txt; done' >> \$line.sh
 done
 EOF
 
@@ -1327,49 +1423,49 @@ cat > lrt.py << EOF
 import glob, os, sys
 
 def grepLoglk_fasttree_1(file):
-	f = open(file, 'r')
-	lines = f.readlines()
-	for line in lines:
-		if 'Optimize all lengths:' in line:
-			return float(line.split()[-3])
-	return False
+    f = open(file, 'r')
+    lines = f.readlines()
+    for line in lines:
+        if 'Optimize all lengths:' in line:
+            return float(line.split()[-3])
+    return False
 
 def grepLoglk_fasttree_m(file):
-	tmp = list()
-	f = open(file, 'r')
-	lines = f.readlines()
-	for line in lines:
-		if 'Optimize all lengths:' in line:
-			tmp.append(float(line.split()[-3]))
-	return tmp	
+    tmp = list()
+    f = open(file, 'r')
+    lines = f.readlines()
+    for line in lines:
+        if 'Optimize all lengths:' in line:
+            tmp.append(float(line.split()[-3]))
+    return tmp  
 
 def findElement(files, s1, s2):
-	for i in range(len(files)):
-		if s1 in files[i] and s2 in files[i]:
-			return files[i]
+    for i in range(len(files)):
+        if s1 in files[i] and s2 in files[i]:
+            return files[i]
 
 def findElements(files, s1, s2):
-	temp = list()
-	for i in range(len(files)):
-		if s1 in files[i] and s2 in files[i]:
-			temp.append(files[i])
-	return temp
+    temp = list()
+    for i in range(len(files)):
+        if s1 in files[i] and s2 in files[i]:
+            temp.append(files[i])
+    return temp
 
 def readlkboot_ft(files, s1, s2):
-	ls = list()
-	fs = findElements(files, s1, s2)
-	fs.sort() 
-	for f in fs:
-		ls = ls + grepLoglk_fasttree_m(f)
-	return ls
+    ls = list()
+    fs = findElements(files, s1, s2)
+    fs.sort() 
+    for f in fs:
+        ls = ls + grepLoglk_fasttree_m(f)
+    return ls
 
 def rename_files(path):
-	for filename in glob.glob(path + '*.o*'):
-		if filename.split()[-1].split('/')[-1].startswith('job'):
-			f = open(filename, 'r')
-			lines = f.readlines()
-			new_name = filename.split()[-1].split('job')[0] + lines[1].split()[1].split('_c')[0] + '.res.txt'
-			os.rename(filename, new_name)
+    for filename in glob.glob(path + '*.o*'):
+        if filename.split()[-1].split('/')[-1].startswith('job'):
+            f = open(filename, 'r')
+            lines = f.readlines()
+            new_name = filename.split()[-1].split('job')[0] + lines[1].split()[1].split('_c')[0] + '.res.txt'
+            os.rename(filename, new_name)
 
 
 loc_n_1 = os.getcwd() + '/' + sys.argv[1]
@@ -1399,61 +1495,61 @@ lrt = dict()
 
 miss_lk = list()
 for file in files_n_1:
-	key = [file.split('/')[-1].split('_' + '`echo $unique_str`')[0], '`echo $unique_str`' + file.split('/')[-1].split('_' + '`echo $unique_str`')[1].split('.res')[0]]
-	v1 = grepLoglk_fasttree_1(file)
-	file21 = findElement(files_n_top, key[0], key[1])
-	v21 = grepLoglk_fasttree_1(file21)
-	file22 = findElement(files_n_notop, key[0], key[1])
-	v22 = grepLoglk_fasttree_1(file22)
-	b_temp = True
-	if v1 == False:
-		miss_lk.append((key[0], key[1], 'n-1'))
-		b_temp = False
-	if v21 == False:
-		miss_lk.append((key[0], key[1], 'n top'))
-		b_temp = False
-	if v22 == False:
-		miss_lk.append((key[0], key[1], 'n no top'))
-		b_temp = False
-	if b_temp == True:
-		v2 = max(v21, v22)
-		#T= -2ln(H0) + 2ln(H1) = -2v1 + 2v2
-		test_st[key[0], key[1]] = [v1, v21, v22, -2*v1 + 2*v2]
-	boot1 = readlkboot_ft(files_n_1_b, key[0], key[1])
-	boot21 = readlkboot_ft(files_n_b_top, key[0], key[1])
-	boot22 = readlkboot_ft(files_n_b_notop, key[0], key[1])
-	if len(boot1) < `echo $n_samples`:
-		miss_lk.append((key[0], key[1], 'boot n-1'))
-	if len(boot21) < `echo $n_samples`:
-		miss_lk.append((key[0], key[1], 'boot n top'))
-	if len(boot22) < `echo $n_samples`:
-		miss_lk.append((key[0], key[1], 'boot n no top'))
-	if len(boot1) == `echo $n_samples` and len(boot21) == `echo $n_samples` and len(boot22) == `echo $n_samples` and b_temp == True:
-		test_st_b = list()
-		for i in range(len(boot1)):
-			test_st_b.append(-2*boot1[i] + 2*max(boot21[i], boot22[i]))
-		distr[key[0], key[1]] = [boot1, boot21, boot22, test_st_b]
-		p = (sum(i >= test_st[key[0], key[1]][3] for i in test_st_b)+1)/(float(len(test_st_b))+1)
-		lrt[key[0], key[1]] = [test_st[key[0], key[1]][3], p]
-		file_name = key[0] + '_' + key[1] + '_lrt.txt'
-		f = open(os.getcwd() + '/lrt_summaries/'+ file_name, 'w')
-		f.write('Log-likelihood n-1; Log-likelihood n without input topology; Log-likelihood n with input topology; Test statistic \n')
-		f.write(str(v1) + '\t' + str(v22) + '\t' + str(v21) + '\t' + str(test_st[key[0], key[1]][3]) + '\n')
-		f.write('Bootstrap replicates \n')
-		for i in range(len(boot1)):
-			f.write(str(boot1[i]) + '\t' + str(boot22[i]) + '\t' + str(boot21[i]) + '\t' + str(test_st_b[i]) + '\n')
-		f.close()
+    key = [file.split('/')[-1].split('_' + '`echo $unique_str`')[0], '`echo $unique_str`' + file.split('/')[-1].split('_' + '`echo $unique_str`')[1].split('.res')[0]]
+    v1 = grepLoglk_fasttree_1(file)
+    file21 = findElement(files_n_top, key[0], key[1])
+    v21 = grepLoglk_fasttree_1(file21)
+    file22 = findElement(files_n_notop, key[0], key[1])
+    v22 = grepLoglk_fasttree_1(file22)
+    b_temp = True
+    if v1 == False:
+        miss_lk.append((key[0], key[1], 'n-1'))
+        b_temp = False
+    if v21 == False:
+        miss_lk.append((key[0], key[1], 'n top'))
+        b_temp = False
+    if v22 == False:
+        miss_lk.append((key[0], key[1], 'n no top'))
+        b_temp = False
+    if b_temp == True:
+        v2 = max(v21, v22)
+        #T= -2ln(H0) + 2ln(H1) = -2v1 + 2v2
+        test_st[key[0], key[1]] = [v1, v21, v22, -2*v1 + 2*v2]
+    boot1 = readlkboot_ft(files_n_1_b, key[0], key[1])
+    boot21 = readlkboot_ft(files_n_b_top, key[0], key[1])
+    boot22 = readlkboot_ft(files_n_b_notop, key[0], key[1])
+    if len(boot1) < `echo $n_samples`:
+        miss_lk.append((key[0], key[1], 'boot n-1'))
+    if len(boot21) < `echo $n_samples`:
+        miss_lk.append((key[0], key[1], 'boot n top'))
+    if len(boot22) < `echo $n_samples`:
+        miss_lk.append((key[0], key[1], 'boot n no top'))
+    if len(boot1) == `echo $n_samples` and len(boot21) == `echo $n_samples` and len(boot22) == `echo $n_samples` and b_temp == True:
+        test_st_b = list()
+        for i in range(len(boot1)):
+            test_st_b.append(-2*boot1[i] + 2*max(boot21[i], boot22[i]))
+        distr[key[0], key[1]] = [boot1, boot21, boot22, test_st_b]
+        p = (sum(i >= test_st[key[0], key[1]][3] for i in test_st_b)+1)/(float(len(test_st_b))+1)
+        lrt[key[0], key[1]] = [test_st[key[0], key[1]][3], p]
+        file_name = key[0] + '_' + key[1] + '_lrt.txt'
+        f = open(os.getcwd() + '/lrt_summaries/'+ file_name, 'w')
+        f.write('Log-likelihood n-1; Log-likelihood n without input topology; Log-likelihood n with input topology; Test statistic \n')
+        f.write(str(v1) + '\t' + str(v22) + '\t' + str(v21) + '\t' + str(test_st[key[0], key[1]][3]) + '\n')
+        f.write('Bootstrap replicates \n')
+        for i in range(len(boot1)):
+            f.write(str(boot1[i]) + '\t' + str(boot22[i]) + '\t' + str(boot21[i]) + '\t' + str(test_st_b[i]) + '\n')
+        f.close()
 
 f = open(os.getcwd() + '/' + 'lrt_summary.txt', 'w')
 f.write('Gene1; Gene2; Test statistic; p-value \n')
 for key in lrt.keys():
-	f.write(key[0] + '\t' + key[1] + '\t' + str(lrt[key[0], key[1]][0])  + '\t' + str(lrt[key[0], key[1]][1]) + '\n')
+    f.write(key[0] + '\t' + key[1] + '\t' + str(lrt[key[0], key[1]][0])  + '\t' + str(lrt[key[0], key[1]][1]) + '\n')
 f.close()
 
 f = open(os.getcwd() + '/' + 'missing_lk.txt', 'w')
 f.write('Gene1; Gene2; Where \n')
 for i in miss_lk:
-	f.write(i[0] + '\t' + i[1] + '\t' + i[2] + '\n')
+    f.write(i[0] + '\t' + i[1] + '\t' + i[2] + '\n')
 f.close()
 
 EOF
@@ -1739,39 +1835,39 @@ collapsing_res = dict()
 tmp = open(os.getcwd() + '/collapsing_results.txt', 'r')
 lines = tmp.readlines()
 for i in range(1,len(lines)):
-	collapsing_res[lines[i].split()[0], lines[i].split()[1]] = lines[i].split()[3]
+    collapsing_res[lines[i].split()[0], lines[i].split()[1]] = lines[i].split()[3]
 tmp.close()
 
 lrt_res = dict()
 tmp = open(os.getcwd() + '/lrt_summary.txt', 'r')
 lines = tmp.readlines()
 for i in range(1,len(lines)):
-	lrt_res[lines[i].split()[0], lines[i].split()[1]] = float(lines[i].split()[3])
+    lrt_res[lines[i].split()[0], lines[i].split()[1]] = float(lines[i].split()[3])
 tmp.close()
 
 
 res_temp = list()
 
 for key in collapsing_res:
-	if collapsing_res[key] == 'True' and lrt_res[key] > float('`echo $lrt_sign`'):
-		res_temp.append(key)
+    if collapsing_res[key] == 'True' and lrt_res[key] > float('`echo $lrt_sign`'):
+        res_temp.append(key)
 
 
 ambiguities = [[0]*len(res_temp) for x in range(len(res_temp))]
 
 for i in range(len(res_temp)-1):
-	for j in range(i+1, len(res_temp)):
-		if res_temp[i][0] in res_temp[j] or res_temp[i][1] in res_temp[j]:
-			ambiguities[i][j] = 1
-			ambiguities[j][i] = 1
+    for j in range(i+1, len(res_temp)):
+        if res_temp[i][0] in res_temp[j] or res_temp[i][1] in res_temp[j]:
+            ambiguities[i][j] = 1
+            ambiguities[j][i] = 1
 
 unamb = list()
 amb_tmp = list()
 for i in range(len(res_temp)):
-	if sum(ambiguities[i]) == 0:
-		unamb.append([res_temp[i][0], res_temp[i][1]])
-	else:
-		amb_tmp.append([res_temp[i][0], res_temp[i][1]])
+    if sum(ambiguities[i]) == 0:
+        unamb.append([res_temp[i][0], res_temp[i][1]])
+    else:
+        amb_tmp.append([res_temp[i][0], res_temp[i][1]])
 
 
 positions = dict()
@@ -1796,7 +1892,7 @@ for pair in amb_tmp:
     if pair[0] in nonovlp_cl or pair[1] in nonovlp_cl:
         unamb.append(pair)
     else:
-    	amb.append(pair)
+        amb.append(pair)
 
 unamb_out = open(os.getcwd() + '/predictions_unambiguous.txt', 'w')
 unamb_out.write('Collapsing with threshold 0.' + '`echo $col_thr`' + ', LRT significance level ' + '`echo $lrt_sign`' + '\n')
