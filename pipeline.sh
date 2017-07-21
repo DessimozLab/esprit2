@@ -117,7 +117,7 @@ fi
 
 # check that mafft, phyml and fasttree are installed and in PATH
 allok="true"
-for prog in mafft phyml FastTree ; do
+for prog in mafft FastTree ; do
     if [ ! $(which ${prog} 2>/dev/null) ] ; then
         >&2 echo "Could not detect \"$prog\" in PATH. Please make sure \"$prog\" is "
         >&2 echo "installed and accessible from the PATH."
