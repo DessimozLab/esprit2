@@ -15,3 +15,10 @@ pyenv activate myenv3
 # by default, if nothing is activated, the default python 
 # environment is used. We strongly discurage to setup esprit
 # like this.
+
+
+export PATH=$PATH:/share/apps/genomics/mafft-7.310/bin:/share/apps/genomics/FastTree-2.1.10:./
+export MAFFT_BINARIES="/share/apps/genomics/mafft-7.310/libexec/mafft/"
+if [ ! -s FastTree ] ; then
+    ln -s $(which FastTreeMP) FastTree
+fi
