@@ -108,7 +108,7 @@ if [ -z "$unique_str" ] || [ ! -f "$orthoxml" ] || [ ! -d "$gene_fam_dir" ] ; th
 fi
 
 
-source ./load_python
+source ./load_env
 pip install -r ./requirements.txt
 if [ "$?" != "0" ] ; then
     >&2 echo "failed to install python dependencies."
@@ -527,7 +527,7 @@ cat >> get_candidates.sh << EOF
 mkdir -p hog_temp hog_aln aln \
          phy aln_c phy_c
 
-source ./load_python
+source ./load_env
 python get_candidates.py
 
 rm -rf hog_temp
@@ -561,7 +561,7 @@ mkdir -p n_1_trees
 find phy_c/ -name "*_tree.txt" -exec mv {} n_1_trees \; &
 wait
 
-source ./load_python
+source ./load_env
 python splitting_trees.py n_1_trees/
 EOF
 
@@ -709,7 +709,7 @@ qsub -N o_n -hold_jid "o_n_*" organise_n.sh
 cat bootstrap.txt > bootstrap.sh
 cat >> bootstrap.sh << EOF
 
-source ./load_python
+source ./load_env
 python bootstrap.py --loc_folder='aln_c/' --num_bootstraps=$n_samples -j 1 --verbose=2
 EOF
 
@@ -1113,7 +1113,7 @@ qsub -N bs -cwd bootstrap.sh
 cat organise_files.txt > boot_phy.sh
 cat >> boot_phy.sh << EOF
 
-source ./load_python
+source ./load_env
 python boot_phy.py aln_c/bootstrap/
 EOF
 
@@ -1156,7 +1156,7 @@ qsub -N ob -hold_jid bs_phy organise_br_n_1_phy.sh
 cat organise_files.txt > split_aln.sh
 cat >> split_aln.sh << EOF
 
-source ./load_python
+source ./load_env
 python split_aln.py cuts.txt aln_c/bootstrap/
 EOF
 
@@ -1315,7 +1315,7 @@ mkdir -p n_1_b_trees
 find bootstrap_phy/*/ -name "*tree.txt" -exec mv {} n_1_b_trees \; &
 wait
 
-source ./load_python
+source ./load_env
 python splitting_trees.py n_1_b_trees/
 EOF
 
@@ -1435,7 +1435,7 @@ qsub -N prep_lrt -hold_jid o_n_1,o_n_not,o_n_top,o_b_n_1,obn prepare_lrt.sh
 cat organise_files.txt > do_lrt.sh
 cat >> do_lrt.sh << EOF
 
-source ./load_python
+source ./load_env
 python lrt.py n_1_res/ n_notop_res/ n_top_res/ n_1_b_res/ n_b_notop_res/ n_b_top_res/
 EOF
 
@@ -1725,7 +1725,7 @@ mkdir collapsed_$col_thr
 tar -zxvf n_trees_notop.tar.gz
 cd n_trees_notop/
 
-source ./load_python
+source ./load_env
 for f in *phy_tree_notop.txt
 do
     python ../collapse.py \$f --threshold 0.$col_thr > ../collapsed_$col_thr/\$f
@@ -1781,7 +1781,7 @@ EOF
 cat organise_files.txt > check_sisters.sh
 cat >> check_sisters.sh << EOF
 
-source ./load_python
+source ./load_env
 python check_sisters.py
 
 rm -rf n_trees_notop/
@@ -1930,7 +1930,7 @@ EOF
 
 cat organise_files.txt > predict.sh
 cat >> predict.sh << EOF
-source ./load_python
+source ./load_env
 python predict.py 
 EOF
 
