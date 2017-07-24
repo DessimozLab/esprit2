@@ -1,13 +1,20 @@
 #!/bin/bash
 
-# This file can be adjusted to specify the python installation 
-# you want to use
+# This file can be adjusted to specify the environment, most importantly 
+# the python installation you want to use
 
-# uncomment use a pyenv virtualenv
-export PATH="${HOME}/.pyenv/bin:$PATH"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-pyenv activate myenv3
+#  ____        _   _
+# |  _ \ _   _| |_| |__   ___  _ __
+# | |_) | | | | __| '_ \ / _ \| '_ \
+# |  __/| |_| | |_| | | | (_) | | | |
+# |_|    \__, |\__|_| |_|\___/|_| |_|
+#        |___/
+
+# uncomment following to use a pyenv virtualenv
+#export PATH="${HOME}/.pyenv/bin:$PATH"
+#eval "$(pyenv init -)"
+#eval "$(pyenv virtualenv-init -)"
+#pyenv activate myenv3
 
 # uncomment to use a virtual environment
 #source /path/to/virtualenv/bin/activate
@@ -17,8 +24,20 @@ pyenv activate myenv3
 # like this.
 
 
-export PATH=$PATH:/share/apps/genomics/mafft-7.310/bin:/share/apps/genomics/FastTree-2.1.10:./
-export MAFFT_BINARIES="/share/apps/genomics/mafft-7.310/libexec/mafft/"
-if [ ! -s FastTree ] ; then
-    ln -s $(which FastTreeMP) FastTree
-fi
+
+#  ____   _  _____ _   _ 
+# |  _ \ / \|_   _| | | |
+# | |_) / _ \ | | | |_| |
+# |  __/ ___ \| | |  _  |
+# |_| /_/   \_\_| |_| |_|
+#                        
+
+# Adjust your PATH and other environment variables associated with it in here
+#  Esprit needs to find Mafft and FastTree in the PATH. The executables are 
+#  assumed to be named mafft and FastTree. Uncomment and adjust the following
+#  lines if this is not the case in your environment.
+#export PATH=$PATH:/share/apps/genomics/mafft-7.310/bin:/share/apps/genomics/FastTree-2.1.10:./
+#export MAFFT_BINARIES="/share/apps/genomics/mafft-7.310/libexec/mafft/"
+#if [ ! -s FastTree ] ; then
+#    ln -s $(which FastTreeMP) FastTree
+#fi
