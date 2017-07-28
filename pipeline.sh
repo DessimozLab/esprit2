@@ -66,7 +66,7 @@ min_len="50"
 ovlp_len="0.1"
 family_size="5"
 n_samples="100"
-col_thr=".65"
+col_thr="65"
 lrt_sign="0.01"
 while getopts "hvl:o:s:b:c:a:" opt; do
     case $opt in
