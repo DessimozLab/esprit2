@@ -108,7 +108,7 @@ if [ -z "$unique_str" ] || [ ! -f "$orthoxml" ] || [ ! -d "$gene_fam_dir" ] ; th
 fi
 
 
-source ./load_python
+source ./load_env
 pip install -r ./requirements.txt
 if [ "$?" != "0" ] ; then
     >&2 echo "failed to install python dependencies."
@@ -117,7 +117,7 @@ fi
 
 # check that mafft, phyml and fasttree are installed and in PATH
 allok="true"
-for prog in mafft phyml FastTree ; do
+for prog in mafft FastTree ; do
     if [ ! $(which ${prog} 2>/dev/null) ] ; then
         >&2 echo "Could not detect \"$prog\" in PATH. Please make sure \"$prog\" is "
         >&2 echo "installed and accessible from the PATH."
@@ -524,17 +524,13 @@ EOF
 cat organise_files.txt > get_candidates.sh
 cat >> get_candidates.sh << EOF
 
-mkdir hog_temp
-mkdir hog_aln
-mkdir aln
-mkdir phy
-mkdir aln_c
-mkdir phy_c
+mkdir -p hog_temp hog_aln aln \
+         phy aln_c phy_c
 
-pyenv activate myenv3
+source ./load_env
 python get_candidates.py
 
-rm -rf mkdir hog_temp
+rm -rf hog_temp
 EOF
 
 qsub -sync y -N get_cand -hold_jid mapping get_candidates.sh
@@ -561,11 +557,11 @@ cd ..
 
 cat organise_files.txt > splitting_trees.sh
 cat >> splitting_trees.sh << EOF
-mkdir n_1_trees
+mkdir -p n_1_trees
 find phy_c/ -name "*_tree.txt" -exec mv {} n_1_trees \; &
 wait
 
-pyenv activate myenv3
+source ./load_env
 python splitting_trees.py n_1_trees/
 EOF
 
@@ -713,7 +709,7 @@ qsub -N o_n -hold_jid "o_n_*" organise_n.sh
 cat bootstrap.txt > bootstrap.sh
 cat >> bootstrap.sh << EOF
 
-pyenv activate myenv3
+source ./load_env
 python bootstrap.py --loc_folder='aln_c/' --num_bootstraps=$n_samples -j 1 --verbose=2
 EOF
 
@@ -1117,7 +1113,7 @@ qsub -N bs -cwd bootstrap.sh
 cat organise_files.txt > boot_phy.sh
 cat >> boot_phy.sh << EOF
 
-pyenv activate myenv3
+source ./load_env
 python boot_phy.py aln_c/bootstrap/
 EOF
 
@@ -1160,7 +1156,7 @@ qsub -N ob -hold_jid bs_phy organise_br_n_1_phy.sh
 cat organise_files.txt > split_aln.sh
 cat >> split_aln.sh << EOF
 
-pyenv activate myenv3
+source ./load_env
 python split_aln.py cuts.txt aln_c/bootstrap/
 EOF
 
@@ -1315,10 +1311,11 @@ done
 cat organise_files.txt > splitting_trees_b.sh
 cat >> splitting_trees_b.sh << EOF
 
-mkdir n_1_b_trees
+mkdir -p n_1_b_trees
 find bootstrap_phy/*/ -name "*tree.txt" -exec mv {} n_1_b_trees \; &
 wait
-pyenv activate myenv3
+
+source ./load_env
 python splitting_trees.py n_1_b_trees/
 EOF
 
@@ -1438,7 +1435,7 @@ qsub -N prep_lrt -hold_jid o_n_1,o_n_not,o_n_top,o_b_n_1,obn prepare_lrt.sh
 cat organise_files.txt > do_lrt.sh
 cat >> do_lrt.sh << EOF
 
-pyenv activate myenv3
+source ./load_env
 python lrt.py n_1_res/ n_notop_res/ n_top_res/ n_1_b_res/ n_b_notop_res/ n_b_top_res/
 EOF
 
@@ -1728,7 +1725,7 @@ mkdir collapsed_$col_thr
 tar -zxvf n_trees_notop.tar.gz
 cd n_trees_notop/
 
-pyenv activate myenv3
+source ./load_env
 for f in *phy_tree_notop.txt
 do
     python ../collapse.py \$f --threshold 0.$col_thr > ../collapsed_$col_thr/\$f
@@ -1784,7 +1781,7 @@ EOF
 cat organise_files.txt > check_sisters.sh
 cat >> check_sisters.sh << EOF
 
-pyenv activate myenv3
+source ./load_env
 python check_sisters.py
 
 rm -rf n_trees_notop/
@@ -1933,7 +1930,7 @@ EOF
 
 cat organise_files.txt > predict.sh
 cat >> predict.sh << EOF
-pyenv activate myenv3
+source ./load_env
 python predict.py 
 EOF
 
