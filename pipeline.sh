@@ -53,7 +53,7 @@ Options:
                 
 -b              number of bootstrap replicates, defaults to 100 if not set.
 
--c              threshold for collapsing, defaults to 0.65 if not set. This 
+-c              threshold for collapsing, defaults to 0.95 if not set. This 
                 refers to the number of bootstrap replicates that need to
                 contain a certain split in order to not be collapsed.
 
@@ -66,7 +66,7 @@ min_len="50"
 ovlp_len="0.1"
 family_size="5"
 n_samples="100"
-col_thr="65"
+col_thr="95"
 lrt_sign="0.01"
 while getopts "hvl:o:s:b:c:a:" opt; do
     case $opt in
