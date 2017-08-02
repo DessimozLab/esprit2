@@ -1723,9 +1723,9 @@ cat >> collapse.sh << EOF
 
 mkdir collapsed_$col_thr
 tar -zxvf n_trees_notop.tar.gz
-cd n_trees_notop/
-
 source ./load_env
+
+cd n_trees_notop/
 for f in *phy_tree_notop.txt
 do
     python ../collapse.py \$f --threshold 0.$col_thr > ../collapsed_$col_thr/\$f
