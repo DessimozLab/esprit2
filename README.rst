@@ -58,87 +58,80 @@ you can specify together with their default values.
 Output files:
 -------------
 
-.. code-block:: sh
+``collapsing_results.txt``
+    columns: gene1, gene2, sister taxa before collapsing (True/False), sister 
+    taxa after collapsing (True/False)
 
-	collapsing_results.txt
+``lrt_summaries.tar.gz, lrt_summary.txt, missing_lk.txt``
+    tar.gz contains a summary per case tested, lrt_summary.txt provides test 
+    statistics and p-values for all cases, missing_lk.txt indicates cases where
+    the tree likelihood wasn't computed (please have a look at these 
+    computations and investigate what went wrong) 	
 
-columns: gene1, gene2, sister taxa before collapsing (True/False), sister taxa after collapsing (True/False)
+``predictions_ambiguous.txt, predictions_unambiguous.txt``
+    contain gene IDs for predictions
 
-.. code-block:: sh
+``alignment_positions.txt``
+    TSV file with the following columns: 
+    
+    1. HOG ID
+    
+    2. gene1
+      
+    3. gene2
+       
+    4. start position of gene1 in the MSA
+      
+    5. end position of gene1 in the MSA
+       
+    6. start position of gene2 in the MSA
+      
+    7. end position of gene2 in the MSA
+      
+    8. overlap start position (or -1 if no overlap)
+       
+    9. overlap end position (or -1 if no overlap)
+      
+    10. %overlap of aligned gene1
+        
+    11. %overlap of aligned gene2
 
-	lrt_summaries.tar.gz, lrt_summary.txt, missing_lk.txt
+``cuts.txt``
+    columns: HOG ID, gene1, gene2, their cut/middle position in the alignment
 
-tar.gz contains a summary per case tested, lrt_summary.txt provides test statistics and p-values for all cases, missing_lk.txt indicates cases where the tree likelihood wasn't computed (please have a look at these computations and investigate what went wrong) 	
+``mapping.txt``
+    mapping between OMA IDs and IWGSC IDs
 
-.. code-block:: sh
-	
-	predictions_ambiguous.txt, predictions_unambiguous.txt
+``sequence_lengths.txt``
+    TSV file with following columns: HOG ID, gene1, length of gene1, gene2, 
+    length of gene2 
 
-contain gene IDs for predictions
+    Contains also pairs with short sequence(s) which didn't pass the min 
+    sequence length criteria
 
-.. code-block:: sh
-	
-	alignment_positions.txt 
+``aln_c.tar.gz, aln.tar.gz, phy_c.tar.gz, phy.tar.gz``
+    contain aligned families in FASTA format (aln_c, aln) and phylip 
+    (phy_c, phy). aln_c and phy_c contain families with n-1 sequences whereas 
+    aln and phy contain n sequences
 
-columns: HOG ID, gene1, gene2, start position of gene1 in the MSA, end position of gene1 in the MSA, start position of gene2 in the MSA, end position of gene2 in the MSA, overlap start position (or -1 if no overlap), overlap end position (or -1 if no overlap), %overlap of aligned gene1, %overlap of aligned gene2
+``hog_aln.tar.gz``
+    alignments of HOGs which contain at least 2 wheat genes from the 
+    chromosome of interest
 
-.. code-block:: sh
-	
-	cuts.txt
+``bootstrap_aln.tar.gz, bootstrap_s_aln.tar.gz, bootstrap_phy.tar.gz, bootstrap_s_phy.tar.gz``
+    similar as above but for bootstrap samples. bootstrap_aln.tar.gz and 
+    bootstrap_phy.tar.gz contain samples with n-1 sequences whereas 
+    bootstrap_s_aln.tar.gz and bootstrap_s_phy.tar.gz contain samples with n 
+    sequences
 
-columns: HOG ID, gene1, gene2, their cut/middle position in the alignment
+``collapsed.tar.gz``
+    contains trees after collapsing
 
-.. code-block:: sh
+``n_1_res.tar.gz, n_notop_res.tar.gz, n_top_res.tar.gz, n_1_b_res.tar.gz, n_b_notop_res.tar.gz, n_b_top_res.tar.gz``
+    contain stats output from FastTree
 
-	mapping.txt
+``n_1_trees.tar.gz, n_trees_notop.tar.gz, n_1_b_trees.tar.gz``
+    contain the infered FastTree trees
 
-mapping between OMA IDs and IWGSC IDs
-
-.. code-block:: sh
-
-	sequence_lengths.txt
-
-columns: HOG ID, gene1, length of gene1, gene2, length of gene2 
-contains also pairs with short sequence(s) which didn't pass the min sequence length criteria
-
-.. code-block:: sh
-
-	aln_c.tar.gz, aln.tar.gz, phy_c.tar.gz, phy.tar.gz
-
-contain aligned families in FASTA format (aln_c, aln) and phylip (phy_c, phy). aln_c and phy_c contain families with n-1 sequences whereas aln and phy contain n sequences
-
-.. code-block:: sh
-
-	hog_aln.tar.gz
-
-alignments of HOGs which contain at least 2 wheat genes from the chromosome of interest
-
-.. code-block:: sh
-
-	bootstrap_aln.tar.gz, bootstrap_s_aln.tar.gz, bootstrap_phy.tar.gz, bootstrap_s_phy.tar.gz
-
-similar as above but for bootstrap samples. bootstrap_aln.tar.gz and bootstrap_phy.tar.gz contain samples with n-1 sequences whereas bootstrap_s_aln.tar.gz and bootstrap_s_phy.tar.gz contain samples with n sequences
-
-.. code-block:: sh
-	
-	collapsed.tar.gz
-
-contains trees after collapsing
-
-.. code-block:: sh
-
-	n_1_res.tar.gz, n_notop_res.tar.gz, n_top_res.tar.gz, n_1_b_res.tar.gz, n_b_notop_res.tar.gz, n_b_top_res.tar.gz
-
-contain stats output from FastTree
-
-.. code-block:: sh
-	
-	n_1_trees.tar.gz, n_trees_notop.tar.gz, n_1_b_trees.tar.gz
-
-contain FastTree trees
-
-.. code-block:: sh
-	
-	n_1_trees_s.tar.gz, n_1_b_trees_s.tar.gz
-
-contain input topologies for tree reconstructions with input topology
+``n_1_trees_s.tar.gz, n_1_b_trees_s.tar.gz``
+    contain input topologies for tree reconstructions with input topology
