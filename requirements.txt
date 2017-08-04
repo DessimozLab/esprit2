@@ -1,4 +1,5 @@
 lxml
+scipy
 ete3
 dendropy
 requests
