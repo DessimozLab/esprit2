@@ -1286,7 +1286,7 @@ for f in *.phy; do echo \${f/_c.*.phy/};done | sort| uniq > foldernames.txt
 for line in \`cat foldernames.txt\`
 do  
     mkdir \$line
-    find . -name "\$line*.phy" -exec mv {} \$line/ \; &
+    find . -maxdepth 1 -name "\$line*.phy" -exec mv {} \$line/ \; &
     wait
 done
 
@@ -1312,7 +1312,7 @@ cat organise_files.txt > splitting_trees_b.sh
 cat >> splitting_trees_b.sh << EOF
 
 mkdir -p n_1_b_trees
-find bootstrap_phy/*/ -name "*tree.txt" -exec mv {} n_1_b_trees \; &
+find bootstrap_phy/ -type f -name "*tree.txt" -exec mv {} n_1_b_trees \; &
 wait
 
 source ./load_env
@@ -1325,13 +1325,13 @@ cat organise_files.txt > organise_b_n_1.sh
 cat >> organise_b_n_1.sh << EOF
 
 mkdir n_1_b_trees_s
-find n_1_b_trees/ -name "*_s.txt" -exec mv {} n_1_b_trees_s \; &
+find n_1_b_trees/ -type f -name "*_s.txt" -exec mv {} n_1_b_trees_s \; &
 wait
 tar -zcvf n_1_b_trees.tar.gz n_1_b_trees --remove-files
 tar -zcvf n_1_b_trees_s.tar.gz n_1_b_trees_s --remove-files
 
 mkdir n_1_b_res
-find . -name "job_b_n_1*" -exec mv {} n_1_b_res \; &
+find . -name "job_b_n_1*" -exec mv {} n_1_b_res \; 2>/dev/null &
 wait
 tar -zcvf n_1_b_res.tar.gz n_1_b_res --remove-files
 
@@ -1358,9 +1358,9 @@ for f in *.phy; do echo \${f/_c.*.phy/};done | sort| uniq > foldernames.txt
 for line in \`cat foldernames.txt\`
 do  
     mkdir \$line
-    find . -name "\$line*.phy" -exec mv {} \$line/ \; &
+    find . -maxdepth 1 -name "\$line*.phy" -exec mv {} \$line/ \; &
     wait
-    find . -name "\$line*.txt" -exec mv {} \$line/ \; &
+    find . -maxdepth 1 -name "\$line*.txt" -exec mv {} \$line/ \; &
     wait
 done
 

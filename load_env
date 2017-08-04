@@ -36,8 +36,8 @@
 #  Esprit needs to find Mafft and FastTree in the PATH. The executables are 
 #  assumed to be named mafft and FastTree. Uncomment and adjust the following
 #  lines if this is not the case in your environment.
-#export PATH=$PATH:/share/apps/genomics/mafft-7.310/bin:/share/apps/genomics/FastTree-2.1.10:./
-#export MAFFT_BINARIES="/share/apps/genomics/mafft-7.310/libexec/mafft/"
-#if [ ! -s FastTree ] ; then
-#    ln -s $(which FastTreeMP) FastTree
-#fi
+export PATH=$(pwd):/share/apps/genomics/mafft-7.310/bin:/share/apps/genomics/FastTree-2.1.10:$PATH
+export MAFFT_BINARIES="/share/apps/genomics/mafft-7.310/libexec/mafft/"
+if [ ! -s FastTree ] ; then
+    ln -s $(which FastTreeMP) FastTree
+fi
