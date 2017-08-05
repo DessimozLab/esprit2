@@ -542,7 +542,10 @@ cd phy_c
 for f in *.phy
 do
     cat ../one_tree.txt > $f.sh
-    echo 'FastTree' `echo $f` '>' `echo $f`'_tree.txt'>> $f.sh
+    cat >> $f.sh << EOF
+    source ../load_env
+    FastTree $f > ${f}_tree.txt
+EOF
 done
 
 
@@ -627,7 +630,10 @@ cd phy
 for f in *.phy
 do
     cat ../one_tree.txt > $f.notop.sh
-    echo 'FastTree' `echo $f` '>' `echo $f`'_tree_notop.txt'>> $f.notop.sh
+    cat >> $f.notop.sh << EOF
+    source ../load_env
+    FastTree $f > ${f}_tree_notop.txt
+EOF
 done
 
 i=1
@@ -674,7 +680,10 @@ cd phy
 for f in *.phy
 do
     cat ../one_tree.txt > $f.top.sh
-    echo 'FastTree -intree' `echo ${f%.phy}`'_c.phy_tree_s.txt' `echo $f` '>' `echo $f`'_tree_top.txt' >> $f.top.sh
+    cat >> $f.top.sh << EOF
+    source ../load_env
+    FastTree -intree  ${f%.phy}_c.phy_tree_s.txt $f > ${f}_tree_top.txt
+EOF
 done
 
 i=1
@@ -1292,9 +1301,14 @@ done
 
 for line in \`cat foldernames.txt\`
 do
-        cat ../bootstrap_trees.txt > \$line.sh
-    echo 'cd ' bootstrap_phy/\$line >> \$line.sh
-    echo 'for f in *.phy; do FastTree \$f > \$f.tree.txt; done' >> \$line.sh
+    cat ../bootstrap_trees.txt > \$line.sh
+    cat >> \$line.sh << EOA
+    source load_env
+    cd bootstrap_phy/\$line
+    for f in *.phy; do 
+        FastTree \$f > \$f.tree.txt
+    done
+EOA
 done
 EOF
 
@@ -1367,15 +1381,25 @@ done
 for line in \`cat foldernames.txt\`
 do
     cat ../bootstrap_trees.txt > \$line.notop.sh
-    echo 'cd ' bootstrap_s_phy/\$line >> \$line.notop.sh
-    echo 'for f in *.phy; do FastTree \$f > \$f.tree_notop.txt; done' >> \$line.notop.sh
+    cat >> \$line.notop.sh << EOA
+    source load_env
+    cd  bootstrap_s_phy/\$line
+    for f in *.phy; do 
+        FastTree \$f > \$f.tree_notop.txt
+    done
+EOA
 done
 
 for line in \`cat foldernames.txt\`
 do
     cat ../bootstrap_trees.txt > \$line.top.sh
-    echo 'cd ' bootstrap_s_phy/\$line >> \$line.top.sh
-    echo 'for f in *.phy; do FastTree -intree \${f/_s.phy/}.phy.tree_s.txt \$f > \$f.tree_top.txt; done' >> \$line.top.sh
+    cat >> \$line.top.sh << EOB
+    source load_env
+    cd bootstrap_s_phy/\$line
+    for f in *.phy; do 
+        FastTree -intree \${f/_s.phy/}.phy.tree_s.txt \$f > \$f.tree_top.txt
+    done
+EOB
 done
 EOF
 

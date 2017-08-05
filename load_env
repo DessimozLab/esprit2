@@ -11,10 +11,10 @@
 #        |___/
 
 # uncomment following to use a pyenv virtualenv
-#export PATH="${HOME}/.pyenv/bin:$PATH"
-#eval "$(pyenv init -)"
-#eval "$(pyenv virtualenv-init -)"
-#pyenv activate myenv3
+export PATH="${HOME}/.pyenv/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+pyenv activate myenv3
 
 # uncomment to use a virtual environment
 #source /path/to/virtualenv/bin/activate
