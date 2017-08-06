@@ -1167,12 +1167,14 @@ cat >> split_aln.sh << EOF
 
 source ./load_env
 python split_aln.py cuts.txt aln_c/bootstrap/
-EOF
 
 cat > split_aln.py << EOF
 import sys
 from Bio import AlignIO
 import glob, os
+import logging
+logger = logging.getLogger("split_aln")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)-15s - %(levelname)s: %(message)s")
 
 def find_key(d, s1, s2):
     for key in d.keys():
@@ -1201,6 +1203,7 @@ def read_msa(loc):
     return msa
 
 def split_sequence(msa, id_full, id1, id2, n):
+    logger.info('splitting sequence {} at {} into {} and {}'.format(id_full, n, id1, id2))
     msa[id1] = msa[id_full][0:n] + '-' * (len(msa[id_full]) - n)
     msa[id2] = '-' * n + msa[id_full][n:]
     msa.pop(id_full)
@@ -1214,14 +1217,14 @@ def write_dictionary(d, out):
     f.close()
     return
 
-
 cuts = dict()
-cf = open(os.getcwd() + '/' + sys.argv[1], 'r')
-tmp = cf.readlines()
-for i in range(len(tmp)):
-    temp  = tmp[i].split()
-    cuts[temp[1], temp[2]] = int(temp[3])
-cf.close()
+fn = os.path.join(os.getcwd(), sys.argv[1])
+logger.info('loading cuts from '+fn)
+with open(fn, 'r') as cf:
+    for line in cf:
+        temp  = line.split()
+        cuts[temp[1], temp[2]] = int(temp[3])
+        logger.debug('cuts: {} / {}: {}'.format(temp[1], temp[2], temp[3])) 
 
 
 boot_dir = os.getcwd() + '/' + sys.argv[2]
@@ -1237,6 +1240,7 @@ for i in range(len(files)):
         id1, id2 = find_key(cuts, i2, i1)
     else:
         c = False
+    logger.debug('checking {}, {} for cuts: {}'.format(i1, i2, c)) 
     if c:   
         n = cuts[id1, id2]
         msa = read_msa(files[i])
@@ -1306,7 +1310,7 @@ do
     source load_env
     cd bootstrap_phy/\$line
     for f in *.phy; do 
-        FastTree \$f > \$f.tree.txt
+        FastTree \\\$f > \\\$f.tree.txt
     done
 EOA
 done
@@ -1385,7 +1389,7 @@ do
     source load_env
     cd  bootstrap_s_phy/\$line
     for f in *.phy; do 
-        FastTree \$f > \$f.tree_notop.txt
+        FastTree \\\$f > \\\$f.tree_notop.txt
     done
 EOA
 done
@@ -1397,7 +1401,7 @@ do
     source load_env
     cd bootstrap_s_phy/\$line
     for f in *.phy; do 
-        FastTree -intree \${f/_s.phy/}.phy.tree_s.txt \$f > \$f.tree_top.txt
+        FastTree -intree \\\${f/_s.phy/}.phy.tree_s.txt \\\$f > \\\$f.tree_top.txt
     done
 EOB
 done
