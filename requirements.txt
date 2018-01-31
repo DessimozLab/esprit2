@@ -7,3 +7,4 @@ ruffus
 biopython
 future
 six
+gffutils

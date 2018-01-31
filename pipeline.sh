@@ -59,6 +59,13 @@ Options:
 
 -a              significance of the likelihood ratio test, defaults to 0.01.
 
+-g              filename of gff input file. IDs of gene features need to match
+                those of the input sequences. By default the merged output
+                gff file will be named same as input + '.merged'. Use the -w 
+                to overwrite.
+
+-w              filename of gff output file. Only affects if -g is specified.
+
 EOF
 }
 
@@ -68,7 +75,9 @@ family_size="5"
 n_samples="100"
 col_thr="95"
 lrt_sign="0.01"
-while getopts "hvl:o:s:b:c:a:" opt; do
+gff=""
+gff_out=""
+while getopts "hvl:o:s:b:c:a:g:w:" opt; do
     case $opt in
     h) usage
        exit 0
@@ -93,10 +102,14 @@ while getopts "hvl:o:s:b:c:a:" opt; do
        ;;
     a) lrt_sign="$OPTARG"
        ;;
+    g) gff="$OPTARG"
+       ;;
+    w) gff_out="$OPTARG"
+       ;;
     esac
 done
 shift $((OPTIND-1))
-  
+
 unique_str="$1"
 gene_fam_dir="${2:-./HOGFasta}"
 orthoxml="${3:-./HierarchicalGroups.orthoxml}"
@@ -1823,6 +1836,9 @@ cat > predict.py << EOF
 #http://stackoverflow.com/questions/21646703/grouping-elements-from-2-tuples-recursively
 
 import sys, os
+import logging
+
+logger = logging.getLogger(__name__)
 
 def find_clusters( tuples ):
     # clusterlist contains at each position either a set
@@ -1954,6 +1970,26 @@ amb_out.write('Collapsing with threshold 0.' + '`echo $col_thr`' + ', LRT signif
 for i in range(len(amb)):
     amb_out.write(amb[i][0] + '\t' + amb[i][1] + '\n')
 amb_out.close()
+
+if len('$gff') > 0:
+    import gff
+    try:
+        merger = gff.GFFOperations('$gff')
+    except Exception:
+        logger.exception('input gff file is invalid')
+        return
+
+    for pair in unamb:
+        try:
+            merger.merge_genes(pair)
+        except MergeError as e:
+            logger.warning('cannot merge {} gene pair in gff file: {}', pair, str(e))
+        except KeyError as e:
+            logger.error('invalid gene for gff file: {}', str(e))
+    outfile = '$gff_out' if len('$gff_out') > 0 else '$gff'+'.merged'
+    merger.write(outfile)
+
+print('all finished. Bye!')
 EOF
 
 cat organise_files.txt > predict.sh
