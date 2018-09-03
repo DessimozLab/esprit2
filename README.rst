@@ -3,7 +3,7 @@ Esprit 2: Detecting split genes
 
 Esprit 2 is a software package to detect split genes in a proteome using 
 a statistical test based on reconstructed gene trees with related reference
-genomes. The approach is described in detail in `http://xxx`_.
+genomes. The approach is described in detail in https://doi.org/10.1093/bioinformatics/bty772
 
 
 
