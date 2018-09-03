@@ -71,6 +71,10 @@ Output files:
 ``predictions_ambiguous.txt, predictions_unambiguous.txt``
     contain gene IDs for predictions
 
+``updated_gff_file.gff``
+    updated GFF file with inferred predictions (merged gene features). Only available if 
+    input GFF file is specified
+
 ``alignment_positions.txt``
     TSV file with the following columns: 
     
