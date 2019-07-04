@@ -456,7 +456,7 @@ for key in candidates_number:
 positions = list()
 cuts = list()
 lengths = list()
-
+hog_size = dict()
 
 for key in candidates_id:
     hog_loc = "$gene_fam_dir" +'/HOG' + key + '.fa'
@@ -474,6 +474,7 @@ for key in candidates_id:
     #
     msa = process_stdout(stdout)
     if len(msa) >= `echo $family_size`:
+        hog_size[key] = len(msa)
         for i in range(len(candidates_id[key]) - 1):
             for j in range(i + 1, len(candidates_id[key])):
                 lengths.append((key, candidates_id[key][i], len(hog_seqs[candidates_id[key][i]]), candidates_id[key][j], len(hog_seqs[candidates_id[key][j]])))
@@ -530,6 +531,12 @@ hogs_cuts = os.getcwd() + '/cuts.txt'
 f = open(hogs_cuts, 'w')
 for i in range(len(cuts)):
     f.write(cuts[i][0] + '\t' + cuts[i][1] + '\t' + cuts[i][2] + '\t' + str(cuts[i][3]) + '\n')
+f.close()
+
+hog_size_loc = os.getcwd() + '/hogs_size.txt'
+f = open(hog_size_loc, 'w')
+for key in hog_size.keys():
+    f.write(str(key) + '\t' + str(hog_size[key]) + '\n')
 f.close()
 EOF
 
