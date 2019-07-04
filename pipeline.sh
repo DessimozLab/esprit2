@@ -1996,7 +1996,7 @@ if len('$gff') > 0:
     outfile = '$gff_out' if len('$gff_out') > 0 else '$gff'+'.merged'
     merger.write(outfile)
 
-print('all finished. Bye!')
+#print('all finished. Bye!')
 EOF
 
 cat organise_files.txt > predict.sh
@@ -2007,3 +2007,110 @@ EOF
 
 qsub -N predict -hold_jid lrt,check_sis predict.sh
 
+cat > predictions_details.py << EOF
+import os
+
+#seq in HOG
+hog_size = dict() #hog_size[HOG ID] = number
+tmp = open(os.getcwd() + '/hogs_size.txt', 'r')
+lines = tmp.readlines()
+for i in range(len(lines)):
+	hog_size[lines[i].split()[0]] = lines[i].split()[1]
+tmp.close()
+
+
+#candidates per HOG
+candidates_per_hog = dict() #candidates_per_hog[HOG ID] = number
+tmp = open(os.getcwd() + '/cuts.txt', 'r')
+lines = tmp.readlines()
+for i in range(len(lines)):
+    if lines[i].split()[0] not in candidates_per_hog.keys():
+    	candidates_per_hog[lines[i].split()[0]] = 1
+    else:
+    	candidates_per_hog[lines[i].split()[0]] += 1
+tmp.close()
+
+
+#fragments' lengths and HOG IDs for all possible pairs
+lengths = dict() #lengths[gene1, gene2] = [HOG ID, len1, len2]
+
+#target species in HOG
+target_per_hog = dict() #target_per_hog = [target1, target2,...]
+
+tmp = open(os.getcwd() + '/sequence_lengths.txt', 'r')
+lines = tmp.readlines()
+for i in range(len(lines)):
+    hog = lines[i].split()[0]
+    s1 = lines[i].split()[1]
+    s2 = lines[i].split()[3]
+    lengths[s1, s2] = [hog, lines[i].split()[2], lines[i].split()[4]] 
+    if hog not in target_per_hog.keys():
+        target_per_hog[hog] = list()
+        target_per_hog[hog].append(s1)
+        target_per_hog[hog].append(s2)
+    else:
+        target_per_hog[hog].append(s1)
+        target_per_hog[hog].append(s2)
+tmp.close()
+
+
+for key in target_per_hog.keys():
+    target_per_hog[key] = list(set(target_per_hog[key]))
+
+
+#predictions and types of predictions
+predictions = dict() #predictions[gene1, gene2] = 'A/U'
+
+#predictions in HOG
+predictions_per_hog = dict() #predictions_per_hog[HOG ID] = number
+
+tmp = open(os.getcwd() + '/predictions_unambiguous.txt', 'r')
+lines = tmp.readlines()
+for i in range(len(lines)):
+    s1 = lines[i].split()[0]
+    s2 = lines[i].split()[1]
+    predictions[s1, s2] = 'U'
+    if (s1, s2) not in lengths.keys():
+        lengths[s1, s2] = [lengths[s2, s1][0], lengths[s2, s1][2], lengths[s2, s1][1]]
+    hog = lengths[s1, s2][0]
+    if hog not in predictions_per_hog.keys():
+        predictions_per_hog[hog] = 1
+    else:
+        predictions_per_hog[hog] += 1
+tmp.close()
+tmp = open(os.getcwd() + '/predictions_ambiguous.txt', 'r')
+lines = tmp.readlines()
+for i in range(len(lines)):
+    s1 = lines[i].split()[0]
+    s2 = lines[i].split()[1]
+    predictions[s1, s2] = 'A'
+    if (s1, s2) not in lengths.keys():
+       lengths[s1, s2] = [lengths[s2, s1][0], lengths[s2, s1][2], lengths[s2, s1][1]]  
+    hog = lengths[s1, s2][0]
+    if hog not in predictions_per_hog.keys():
+        predictions_per_hog[hog] = 1
+    else:
+        predictions_per_hog[hog] += 1 
+tmp.close()
+
+
+
+f = open(os.getcwd() + '/details_predictions.txt', 'w')
+f.write('HOG ID; #seq in HOG; #target_seq in HOG; #candidate_pairs in HOG; #predictions in HOG; gene1; gene2; len1; len2; type' + '\n')
+for key in predictions.keys():
+    hog = lengths[key][0]
+    f.write(str(hog) + '\t' + str(hog_size[hog]) + '\t' + str(len(target_per_hog[hog])) + '\t' + str(candidates_per_hog[hog]) + '\t' + str(predictions_per_hog[hog]) + '\t' + str(key[0]) + '\t' + str(key[1]) + '\t' + str(lengths[key][1]) + '\t' + str(lengths[key][2]) + '\t' + str(predictions[key]) + '\n')
+f.close()
+
+EOF
+
+
+cat organise_files.txt > predictions_details.sh
+cat >> predictions_details.sh << EOF
+
+source ./load_env
+python predictions_details.py
+EOF
+
+
+qsub -N pdetails -hold_jid predict predictions_details.sh
