@@ -71,6 +71,9 @@ Output files:
 ``predictions_ambiguous.txt, predictions_unambiguous.txt``
     contain gene IDs for predictions
 
+``details_predictions.txt``
+    columns: HOG ID, number of sequences in the HOG, number of sequences from the target species (or chromosome) in the HOG, number of candidate pairs in the HOG, number of predictions in the HOG, gene1, gene2, length of gene1, length of gene2, type of prediction ('A' for ambiguous, 'U' for unambiguous)
+
 ``updated_gff_file.gff``
     updated GFF file with inferred predictions (merged gene features). Only available if 
     input GFF file is specified
@@ -102,6 +105,9 @@ Output files:
 
 ``cuts.txt``
     columns: HOG ID, gene1, gene2, their cut/middle position in the alignment
+
+``hog_size.txt``
+    columns: HOG ID, number of sequences in the HOG
 
 ``mapping.txt``
     mapping between OMA IDs and IWGSC IDs
